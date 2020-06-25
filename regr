@@ -1,0 +1,56 @@
+#!/bin/bash
+
+Number_of_files=$#			#how many arguments(files)
+
+
+for j in ${*:1:$Number_of_files}					
+do
+	
+    	n=0
+	while read line; do		#for every line repeat
+	array[$n]="$line" 
+	my_string=${array[$n]}
+	IFS=':' read -ra my_array <<< "$my_string"	#left part of line my_array[0], right part myarray[1]
+	X[$n]=${my_array[0]}
+	Y[$n]=${my_array[1]}
+	let "n=n+1"			#n=number of lines of the file
+	done < $j           		#done < $file
+
+	sum_x=0
+	sum_y=0
+	sum_xy=0
+	sum_x2=0
+	for ((i=0; i<=$n-1; i++))	
+	do				#for every line compute sums
+		sum_x=$(echo "scale=2; $sum_x+${X[$i]}" | bc)
+		sum_y=$(echo "scale=2; $sum_y+${Y[$i]}" | bc)
+		sum_xy=$(echo "scale=2; $sum_xy+${Y[$i]}*${X[$i]}" | bc)
+		sum_x2=$(echo "scale=2; $sum_x2+${X[$i]}*${X[$i]}" | bc)
+	done
+		q=$(echo "scale=2; ($n*$sum_x2)-($sum_x*$sum_x)" | bc)
+		if [[ $q != 0 ]]	#if x is not stable Y=aX+b
+		then
+			c=1
+			a=$(echo "scale=2; (($n*$sum_xy)-($sum_x*$sum_y))/(($n*$sum_x2)-($sum_x*$sum_x))" | bc)
+			b=$(echo "scale=2; ($sum_y-($a*$sum_x))/$n" | bc)	
+			err=0
+		
+			for ((i=0; i<=$n-1; i++))
+			do
+				tmp=$(echo "scale=2; (($a*${X[$i]})+$b)" | bc)     #aX[i]+b
+				tmp2=$(echo "scale=2; ((${Y[$i]})-($tmp))" | bc)   #Y[i]-(aX[i]+b)
+				tmp3=$(echo "scale=2; $tmp2*$tmp2" | bc)           #(Y[i]-(aX[i]+b))^2
+				err=$(echo "scale=2; $err+$tmp3" | bc)
+			done 
+		else   			#if x is stable x=-b and err=0
+			a=1
+			c=0
+			b=-${X[0]}
+			err=0
+		fi
+			echo FILE: $j, a=$a b=$b c=$c err=$err
+done
+
+
+
+
